@@ -33,7 +33,8 @@
     {
       "name": "Utilities & Power Tools",
       "apps": [
-        { "name": "Aurora Store", "packageName": "com.aurora.store", "source": "fdroid", "fdroidId": "com.aurora.store", "minSdk": 21, "description": "Install Play Store apps anonymously — no Google account or GMS." },
+        { "name": "Aurora Store", "packageName": "com.aurora.store", "source": "fdroid", "fdroidId": "com.aurora.store", "minSdk": 21, "description": "Install Play Store apps anonymously — no Google account or GMS. On a Gen-1 Portal, pair with Shizuku (set Aurora's installer to Shizuku) so installs work." },
+        { "name": "Shizuku", "packageName": "moe.shizuku.privileged.api", "source": "url", "apkUrl": "https://github.com/RikkaApps/Shizuku/releases/download/v13.6.0/shizuku-v13.6.0.r1086.2650830c-release.apk", "minSdk": 23, "description": "Lets apps like Aurora install silently on a Gen-1 Portal. After installing, run the kit's --shizuku step to start it (re-run after a reboot)." },
         { "name": "Material Files", "packageName": "me.zhanghai.android.files", "source": "fdroid", "fdroidId": "me.zhanghai.android.files", "minSdk": 21, "description": "A clean, capable file manager." },
         { "name": "Fossify Gallery", "packageName": "org.fossify.gallery", "source": "fdroid", "fdroidId": "org.fossify.gallery", "minSdk": 23, "description": "Browse local photos and videos, no ads." },
         { "name": "Termux", "packageName": "com.termux", "source": "fdroid", "fdroidId": "com.termux", "minSdk": 24, "description": "A full Linux terminal environment on the device." }
