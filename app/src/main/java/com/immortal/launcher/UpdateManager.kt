@@ -53,7 +53,11 @@ object UpdateManager {
     io.execute {
       val available =
           runCatching {
-                val j = JSONObject(httpGet(resolveUrl(context)))
+                // Cache-bust: GitHub raw caches ~5 min, which would delay update
+                // detection; a unique query param forces a fresh read each check.
+                val base = resolveUrl(context)
+                val url = base + (if (base.contains("?")) "&" else "?") + "t=" + System.currentTimeMillis()
+                val j = JSONObject(httpGet(url))
                 val info =
                     UpdateInfo(
                         versionCode = j.getLong("versionCode"),
@@ -61,8 +65,13 @@ object UpdateManager {
                         apkUrl = j.getString("apkUrl"),
                         notes = j.optString("notes"),
                     )
+                android.util.Log.i(
+                    "ImmortalUpdate",
+                    "url=$url remote=${info.versionCode} installed=${installedVersionCode(context)}",
+                )
                 if (info.versionCode > installedVersionCode(context)) info else null
               }
+              .onFailure { android.util.Log.w("ImmortalUpdate", "update check failed", it) }
               .getOrNull()
       main.post { onResult(available) }
     }
