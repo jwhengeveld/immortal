@@ -72,7 +72,7 @@ function Wait-Device {
     $state = if ($line) { ($line -split "\s+")[1] } else { "" }
     switch ($state) {
       "device" {
-        $model = (A shell getprop ro.product.model).Trim()
+        $model = "$(A shell getprop ro.product.model)".Trim()
         Ok "Connected: $model"
         if ($model -and $model -notlike "*Portal*") { Warn "This doesn't look like a Portal (model: $model). Continuing." }
         return
@@ -121,7 +121,7 @@ function Start-Shizuku {
   # daemon, the server does NOT survive a reboot; re-run with -Shizuku to restart.
   $SZ = "moe.shizuku.privileged.api"
   $installed = (A shell pm list packages $SZ) -match "package:$SZ"
-  $sdk = [int]((A shell getprop ro.build.version.sdk).Trim())
+  $sdk = [int]("$(A shell getprop ro.build.version.sdk)".Trim())
   if (-not $installed) {
     if ($cfg["SHIZUKU_APK_URL"] -and $sdk -lt 29) {
       Step "Installing Shizuku (enables Aurora Store etc. on this Gen-1 Portal)"
@@ -135,9 +135,9 @@ function Start-Shizuku {
   Step "Starting Shizuku server (for third-party silent installs)"
   # Resolve the version/ABI-specific starter binary at runtime (the install-dir
   # hash and ABI vary per device, so don't hard-code them).
-  $apkpath = ((A shell pm path $SZ) -replace 'package:', '').Trim() -split "`n" | Select-Object -First 1
-  $apkdir  = (A shell "dirname '$apkpath'").Trim()
-  $starter = (A shell "ls $apkdir/lib/*/libshizuku.so 2>/dev/null").Trim() -split "`n" | Select-Object -First 1
+  $apkpath = ("$(A shell pm path $SZ)" -replace 'package:', '').Trim() -split "`n" | Select-Object -First 1
+  $apkdir  = "$(A shell "dirname '$apkpath'")".Trim()
+  $starter = "$(A shell "ls $apkdir/lib/*/libshizuku.so 2>/dev/null")".Trim() -split "`n" | Select-Object -First 1
   if (-not $starter) { Warn "Couldn't find Shizuku's starter - open the Shizuku app and tap Start once"; return }
   if ((A shell "$starter") -match 'exit with 0') { Ok "Shizuku server running" }
   else { Warn "Shizuku didn't confirm startup - open the Shizuku app to check its status" }
@@ -237,16 +237,17 @@ $StateFile = "/sdcard/immortal_restore.env"
 function Snapshot-Stock {
   if ("$(A shell "[ -f $StateFile ] && echo yes")".Trim() -eq "yes") { return }
   $pkg = $cfg["PKG"]
-  $home = ((A shell 'cmd package query-activities --components -a android.intent.action.MAIN -c android.intent.category.HOME') -split "`n" |
+  # NB: not "$home" - that's PowerShell's read-only $HOME automatic variable.
+  $stockHome = ("$(A shell 'cmd package query-activities --components -a android.intent.action.MAIN -c android.intent.category.HOME')" -split "`n" |
     ForEach-Object { $_.Trim() } |
     Where-Object { $_ -match '^[A-Za-z0-9_.]+/' -and $_ -notmatch "^$pkg/" -and $_ -notmatch '^android/' -and $_ -notmatch '^com\.android\.settings/' } |
     Select-Object -First 1)
-  if (-not $home) { $home = $cfg["STOCK_HOME"] }
-  $dream  = (A shell settings get secure screensaver_components).Trim()
-  $ddream = (A shell settings get secure screensaver_default_component).Trim()
+  if (-not $stockHome) { $stockHome = $cfg["STOCK_HOME"] }
+  $dream  = "$(A shell settings get secure screensaver_components)".Trim()
+  $ddream = "$(A shell settings get secure screensaver_default_component)".Trim()
   if (-not $dream  -or $dream  -eq "null" -or $dream  -like "$pkg/*") { $dream  = $cfg["STOCK_DREAM"] }
   if (-not $ddream -or $ddream -eq "null" -or $ddream -like "$pkg/*") { $ddream = $cfg["STOCK_DEFAULT_DREAM"] }
-  "STOCK_HOME=$home`nSTOCK_DREAM=$dream`nSTOCK_DEFAULT_DREAM=$ddream`n" | A shell "cat > $StateFile" | Out-Null
+  "STOCK_HOME=$stockHome`nSTOCK_DREAM=$dream`nSTOCK_DEFAULT_DREAM=$ddream`n" | A shell "cat > $StateFile" | Out-Null
   Ok "Saved this device's stock launcher/screensaver for restore"
 }
 
@@ -283,13 +284,12 @@ if ($Apps) {
 if ($Status) {
   Wait-Device
   Step "Current state"
-  $home = (A shell 'cmd package resolve-activity -a android.intent.action.MAIN -c android.intent.category.HOME') -match "packageName=" | Out-Null
-  Write-Host "  screensaver: $((A shell settings get secure screensaver_components).Trim())"
-  $disabled = (A shell pm list packages -d $cfg["VERIFIER_PKG"]).Trim()
+  Write-Host "  screensaver: $("$(A shell settings get secure screensaver_components)".Trim())"
+  $disabled = "$(A shell pm list packages -d $cfg["VERIFIER_PKG"])".Trim()
   Write-Host "  verifier:    $(if ($disabled) {'disabled'} else {'enabled'})"
   $ota = (A shell pm list packages -d | Select-String "alohaotasetup")
   Write-Host "  OS updates:  $(if ($ota) {'disabled'} else {'enabled'})"
-  $client = (A shell pm list packages $cfg["PKG"]).Trim()
+  $client = "$(A shell pm list packages $cfg["PKG"])".Trim()
   Write-Host "  client:      $(if ($client) {'installed'} else {'not installed'})"
   exit 0
 }
