@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.16 (2026-06-06)
+
+Make Immortal appear as a tile on the Portal TV's stock home (ripleyhome).
+
+- ripleyhome is an Android-TV (Leanback) launcher: it lists apps that declare `CATEGORY_LEANBACK_LAUNCHER` (VLC, the Vewd browser, …), not plain `LAUNCHER` apps — which is why Immortal, Jellyfin, Transistor and Shizuku never showed there. Immortal now declares a Leanback launcher entry, with a 320x180 TV banner, via a launcher-only `activity-alias` (no `HOME` category, so it isn't filtered out as a home app). It opens the normal launcher. Together with the Calls→stock-home bridge, you can hop between Immortal and the stock home in both directions.
+- Declared `leanback` and `touchscreen` as optional features so the app installs cleanly on every Portal, touch or TV.
+
 ## 1.15 (2026-06-05)
 
 Fix the screensaver's time-per-item control so it works with both touch and the remote.

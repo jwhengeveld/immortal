@@ -5,6 +5,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Runs on both touch Portals and the Portal TV (Leanback). Neither feature is
+         required, so the app installs on every model. -->
+    <uses-feature android:name="android.software.leanback" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Store: install and remove apps on-device via PackageInstaller. -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
@@ -31,10 +36,15 @@
         android:usesCleartextTraffic="false"
         android:theme="@style/Theme.SampleApp">
 
-        <!-- Immortal launcher. Opens like any app from the stock home (LAUNCHER
-             filter), and is ALSO eligible as the system home (HOME filter) for
-             the optional `cmd package set-home-activity` step. Its "Calls" tile
-             bridges to the stock launcher, so nothing is hijacked. -->
+        <!-- Immortal launcher. Eligible as the system home (HOME filter) for the
+             optional `cmd package set-home-activity` step. Its "Calls" tile
+             bridges to the stock launcher, so nothing is hijacked.
+
+             The drawer/app-grid entry (LAUNCHER filter) lives on the alias below
+             rather than here: the Portal TV's stock home (ripleyhome) hides apps
+             that carry CATEGORY_HOME from its grid, so a launcher that's also a
+             home app would never show. The alias is a plain LAUNCHER app (no HOME
+             category) that just opens this activity, so it appears like VLC etc. -->
         <activity
             android:name=".HomeActivity"
             android:exported="true"
@@ -43,14 +53,32 @@
             android:theme="@style/Theme.SampleApp">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.HOME" />
                 <category android:name="android.intent.category.DEFAULT" />
             </intent-filter>
         </activity>
+
+        <!-- Plain "open Immortal" app entry for stock launchers, and an Android-TV
+             (Leanback) entry so it shows on the Portal TV's stock home, ripleyhome.
+             ripleyhome is a TV launcher: it lists apps with LEANBACK_LAUNCHER (VLC,
+             the Vewd browser, …), not plain LAUNCHER, which is why Immortal didn't
+             appear there. This alias has only those launcher categories — no HOME —
+             so it isn't filtered as a home app, and a 320x180 banner is provided for
+             the TV card. It just opens HomeActivity. -->
+        <activity-alias
+            android:name=".ImmortalAppEntry"
+            android:exported="true"
+            android:targetActivity=".HomeActivity"
+            android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
+            android:roundIcon="@mipmap/ic_launcher_round"
+            android:banner="@drawable/immortal_banner">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <!-- App Store, launched internally from the launcher tile (explicit
              intent), so it isn't exported. -->

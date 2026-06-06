@@ -1,6 +1,6 @@
 {
-  "versionCode": 16,
-  "versionName": "1.15",
+  "versionCode": 17,
+  "versionName": "1.16",
   "apkUrl": "https://github.com/starbrightlab/immortal/releases/latest/download/immortal.apk",
-  "notes": "Immortal 1.15 — the screensaver's time-per-item control now works on both touchscreen Portals and the TV remote: the on-screen arrows are tappable, while the remote still adjusts with left/right and moves on with up/down."
+  "notes": "Immortal 1.16 — Immortal now appears as an app tile on the Portal TV's stock home (ripleyhome). The TV home is an Android-TV launcher that only lists Leanback apps, so Immortal now declares a Leanback launcher entry with a TV banner. Combined with the Calls bridge, you can move between Immortal and the stock home freely."
 }
