@@ -1,0 +1,86 @@
+name: Bug report
+description: Report a problem with Immortal (launcher, screensaver, store, installs, or the provisioning kit)
+title: "[Bug] <short summary>"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report! A few details make bugs much faster to fix — the
+        Portal model and Android version matter a lot, especially on the first-gen
+        Portal+ (Android 9).
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: A clear description of the problem.
+    validations: { required: true }
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1.
+        2.
+        3.
+    validations: { required: true }
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect to happen?
+  - type: dropdown
+    id: model
+    attributes:
+      label: Portal model
+      options:
+        - Portal Go
+        - Portal Mini
+        - Portal (gen-2)
+        - Portal+
+        - Portal+ (Gen-1, Android 9)
+        - Portal TV
+        - Not sure
+    validations: { required: true }
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      description: Settings -> About (e.g. "Android 9" / "API 28").
+  - type: dropdown
+    id: area
+    attributes:
+      label: Which part?
+      options:
+        - Launcher / home screen
+        - Screensaver / photo frame
+        - App Store (installing a listed app)
+        - Install with Immortal / sideloading an APK
+        - Aurora / Play-Store apps (Shizuku)
+        - Provisioning kit (setup or restore)
+        - Self-update
+        - Other / not sure
+    validations: { required: true }
+  - type: dropdown
+    id: provisioned
+    attributes:
+      label: Set up with the provisioning kit?
+      options: [Yes, "No — installed manually", Not sure]
+  - type: input
+    id: version
+    attributes:
+      label: Immortal version
+      description: Shown on the "App Store" / update tile, or via adb. e.g. 1.9
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / screenshots (optional)
+      description: |
+        Anything that helps — a photo of the screen, or `adb logcat` output. Please
+        scrub anything personal.
+  - type: checkboxes
+    id: confirm
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and didn't find a duplicate.
+          required: true
