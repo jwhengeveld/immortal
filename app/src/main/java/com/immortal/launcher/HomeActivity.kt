@@ -191,15 +191,17 @@ class HomeActivity : ComponentActivity() {
   }
 
   /**
-   * The "Calls" tile opens Portal's calling/contacts surface. We try three paths
-   * in order, stopping at the first that succeeds:
+   * The "Calls" tile bridges to the STOCK Portal home — the only caller Meta trusts
+   * to launch Contacts/calling/camera. We try the touchscreen Portals' launcher
+   * first (the verified host on those models); if it isn't present (e.g. the Portal
+   * TV, which uses a different "ripleyhome" launcher), we fall back to whatever stock
+   * HOME activity this device actually has, so the bridge works on any Portal.
    *
-   *   1. Contacts app directly — the deepest entry point; skips the stock home
-   *      entirely and drops the user straight into their contact list.
-   *   2. Touchscreen Portal's stock launcher — the Contacts host on models that
-   *      ship it; acts as a fallback if the contacts app is absent or disabled.
-   *   3. This device's real stock HOME (e.g. the Portal TV's ripleyhome) —
-   *      last resort so the tile works on any Portal model.
+   * Note: the Contacts app (com.facebook.alohaapps.contacts) exposes a LAUNCHER
+   * activity but enforces a trusted-caller check at the app level — it can only be
+   * opened from approved sources (the stock launcher, or the internal debug launcher
+   * in the settings app). Immortal is not approved, so we must route through the
+   * stock home rather than launching contacts directly.
    *
    * Cold start bounces back here while the task spins up, so we fire twice: the
    * first creates the task, the second (after a beat) brings it forward to stay.
@@ -218,20 +220,13 @@ class HomeActivity : ComponentActivity() {
             }
             .isSuccess
 
-    // 1) Contacts app directly — most direct path to calling on Portal devices.
-    val contacts =
-        ComponentName(
-            "com.facebook.alohaapps.contacts",
-            "com.facebook.aloha.app.contacts.activities.landing.AlohaContactsMainActivity")
-    if (fire(contacts)) return
-
-    // 2) Touchscreen Portals' stock launcher (fallback if contacts app is absent).
+    // 1) Touchscreen Portals' stock launcher (the Contacts/calling host).
     val touch =
         ComponentName(
             "com.facebook.alohaapps.launcher", "com.facebook.aloha.app.home.touch.HomeActivity")
     if (fire(touch)) return
 
-    // 3) Fallback: this device's real stock HOME (e.g. the Portal TV's ripleyhome),
+    // 2) Fallback: this device's real stock HOME (e.g. the Portal TV's ripleyhome),
     //    excluding ourselves and the system fallback homes.
     val stock =
         packageManager
