@@ -302,6 +302,11 @@ if ($Apps) {
 if ($Status) {
   Wait-Device
   Step "Current state"
+  # Current HOME launcher (PR #1, @tgnm): the result used to be piped to
+  # Out-Null so the line never printed.
+  $homePkg = ("$(A shell 'cmd package resolve-activity -a android.intent.action.MAIN -c android.intent.category.HOME')" -split "`n" |
+    Select-String 'packageName=' | Select-Object -First 1) -replace '.*packageName=', ''
+  Write-Host "  home:        $("$homePkg".Trim())"
   $pc = "$(A shell settings get global policy_control)".Trim()
   $dm = "$(A shell settings get secure ui_night_mode)".Trim()
   Write-Host "  status bar:  $(if ($pc -like '*immersive*') {'hidden (immersive)'} else {'stock'})"
