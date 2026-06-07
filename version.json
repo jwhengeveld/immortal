@@ -1,6 +1,6 @@
 {
-  "versionCode": 26,
-  "versionName": "1.25",
+  "versionCode": 27,
+  "versionName": "1.26",
   "apkUrl": "https://github.com/starbrightlab/immortal/releases/latest/download/immortal.apk",
-  "notes": "Immortal 1.25 — new Immortal settings (find the tile in the Settings folder): choose °F or °C for the weather (or let it follow your Portal's region), and pick a larger app-icon size closer to the stock launcher. Also includes 1.24's fix for the status bar flashing white at startup."
+  "notes": "Immortal 1.26 — setup-kit fixes for Windows (thanks to our first outside contributor!). The app itself is unchanged from 1.25: Immortal settings tile (weather °F/°C, app icon size), and no more white status-bar flash at startup."
 }

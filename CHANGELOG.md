@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.26 (2026-06-06)
+
+Provisioning-kit fixes for Windows — the app is unchanged from 1.25.
+
+- Shell scripts now stay LF on Windows checkouts (`.gitattributes`), so `installd.sh` no longer dies on the Portal's shell with a CRLF syntax error — this was why Gen-1 devices showed "Installing new apps is paused" after a Windows-run setup. Thanks to **@tgnm** for the diagnosis and fix (our first outside contribution!).
+- `provision.ps1 -Status` now actually prints the current home launcher (also @tgnm).
+- README: documented Windows' "Unblock" step for downloaded files (community tip from Reddit).
+
 ## 1.25 (2026-06-06)
 
 Immortal settings — the first community-requested customizations.
