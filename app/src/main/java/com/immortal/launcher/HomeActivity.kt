@@ -54,8 +54,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -87,8 +89,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import kotlin.math.roundToInt
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.view.WindowCompat
@@ -282,6 +288,18 @@ private fun LauncherScreen(
   var editMode by remember { mutableStateOf(false) }
   var openFolder by remember { mutableStateOf<String?>(null) }
 
+  // Tile size preference, re-read on resume so a change made in Immortal Settings
+  // applies the moment the user comes back to the home screen.
+  var tileSize by remember { mutableStateOf(ImmortalSettings.load(context).tileSize) }
+  val lifecycleOwner = LocalLifecycleOwner.current
+  DisposableEffect(lifecycleOwner) {
+    val obs = LifecycleEventObserver { _, e ->
+      if (e == Lifecycle.Event.ON_RESUME) tileSize = ImmortalSettings.load(context).tileSize
+    }
+    lifecycleOwner.lifecycle.addObserver(obs)
+    onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+  }
+
   // Remote support: land focus on the grid at startup so the D-pad works on the TV.
   val homeGridFocus = remember { FocusRequester() }
   LaunchedEffect(Unit) { runCatching { homeGridFocus.requestFocus() } }
@@ -398,6 +416,7 @@ private fun LauncherScreen(
     onDispose { runCatching { context.unregisterReceiver(receiver) } }
   }
 
+  CompositionLocalProvider(LocalTileDp provides tileDpFor(tileSize)) {
   Box(modifier = Modifier.fillMaxSize().background(Color(0xFF1A1A1A))) {
     Column(
         modifier =
@@ -457,7 +476,7 @@ private fun LauncherScreen(
                   },
       ) {
         LazyVerticalGrid(
-            columns = GridCells.Fixed(6),
+            columns = GridCells.Fixed(gridColumnsFor(tileSize)),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
             modifier = Modifier.focusRequester(homeGridFocus).focusGroup(),
@@ -514,7 +533,8 @@ private fun LauncherScreen(
     // Floating ghost of the app being dragged.
     dragPkg?.let { pkg ->
       appsEff.firstOrNull { it.component.packageName == pkg }?.let { dragged ->
-        val half = with(androidx.compose.ui.platform.LocalDensity.current) { 44.dp.toPx() }
+        val ghostDp = LocalTileDp.current
+        val half = with(androidx.compose.ui.platform.LocalDensity.current) { (ghostDp / 2).toPx() }
         Image(
             bitmap = dragged.icon,
             contentDescription = null,
@@ -525,7 +545,7 @@ private fun LauncherScreen(
                           (dragPos.y - half).roundToInt(),
                       )
                     }
-                    .size(88.dp)
+                    .size(ghostDp)
                     .clip(RoundedCornerShape(20.dp)),
         )
       }
@@ -556,6 +576,13 @@ private fun LauncherScreen(
             extras =
                 if (name == "Settings")
                     listOf(
+                        FolderExtra("Immortal", ICON_GEAR) {
+                          openFolder = null
+                          runCatching {
+                            context.startActivity(
+                                Intent(context, ImmortalSettingsActivity::class.java))
+                          }
+                        },
                         FolderExtra("Screensaver", ICON_IMAGE) {
                           openFolder = null
                           runCatching {
@@ -600,11 +627,25 @@ private fun LauncherScreen(
       )
     }
   }
+  } // CompositionLocalProvider(LocalTileDp)
 }
 
 private const val APP_KEY = "app:"
 private const val FOLDER_KEY = "folder:"
 private const val UPDATE_CHECK_INTERVAL_MS = 6L * 60 * 60 * 1000 // 6 hours
+
+// --- tile sizing ----------------------------------------------------------------
+// The grid's tile edge, provided once at the top of the tree so every tile
+// (apps, folders, built-ins, the drag ghost) follows the user's size setting.
+// Standard is the original 6-column/88dp look; Large is 5 columns of 110dp tiles,
+// closer to the stock Portal launcher.
+private val LocalTileDp = compositionLocalOf { 88.dp }
+
+private fun tileDpFor(size: String): Dp =
+    if (size == ImmortalSettings.SIZE_LARGE) 110.dp else 88.dp
+
+private fun gridColumnsFor(size: String): Int =
+    if (size == ImmortalSettings.SIZE_LARGE) 5 else 6
 
 @Composable
 private fun HeaderBar(onScreensaver: () -> Unit) {
@@ -616,7 +657,18 @@ private fun HeaderBar(onScreensaver: () -> Unit) {
     }
   }
   val context = androidx.compose.ui.platform.LocalContext.current
-  val weather by produceState(initialValue = "") {
+  // The unit preference is re-read on resume and keys the fetch loop, so flipping
+  // °F/°C in Immortal Settings updates the header the moment the user returns.
+  var weatherUnit by remember { mutableStateOf(ImmortalSettings.load(context).weatherUnit) }
+  val lifecycleOwner = LocalLifecycleOwner.current
+  DisposableEffect(lifecycleOwner) {
+    val obs = LifecycleEventObserver { _, e ->
+      if (e == Lifecycle.Event.ON_RESUME) weatherUnit = ImmortalSettings.load(context).weatherUnit
+    }
+    lifecycleOwner.lifecycle.addObserver(obs)
+    onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
+  }
+  val weather by produceState(initialValue = "", weatherUnit) {
     // Retry soon on failure (e.g. a transient geolocation rate-limit), then
     // refresh periodically. Location is cached after the first success.
     while (true) {
@@ -843,6 +895,8 @@ private const val ICON_IMAGE =
     "M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"
 private const val ICON_HELP =
     "M11 18h2v-2h-2v2zm1-16C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm0-14c-2.21 0-4 1.79-4 4h2c0-1.1.9-2 2-2s2 .9 2 2c0 2-3 1.75-3 5h2c0-2.25 3-2.5 3-5 0-2.21-1.79-4-4-4z"
+private const val ICON_GEAR =
+    "M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"
 
 /** A non-app tile injected into a folder (e.g. the Screensaver settings entry). */
 private data class FolderExtra(val label: String, val glyph: String, val onClick: () -> Unit)
@@ -857,6 +911,7 @@ private fun BuiltInTile(
     onClick: () -> Unit,
 ) {
   val path = remember(glyph) { PathParser().parsePathString(glyph).toPath() }
+  val tileDp = LocalTileDp.current
   Column(
       horizontalAlignment = Alignment.CenterHorizontally,
       modifier = Modifier.padding(4.dp).tvFocusable(RoundedCornerShape(22.dp)) { onClick() },
@@ -864,10 +919,10 @@ private fun BuiltInTile(
     Surface(
         color = background,
         shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.size(88.dp),
+        modifier = Modifier.size(tileDp),
     ) {
       Box(contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(46.dp)) {
+        Canvas(Modifier.size(46.dp * (tileDp / 88.dp))) {
           val s = size.minDimension / 24f
           scale(s, s, pivot = Offset.Zero) { drawPath(path, Color.White) }
         }
@@ -885,6 +940,8 @@ private fun FolderTile(
     modifier: Modifier = Modifier,
     onClick: () -> Unit,
 ) {
+  val tileDp = LocalTileDp.current
+  val scale = tileDp / 88.dp // mini-icon grid scales with the tile
   Column(
       horizontalAlignment = Alignment.CenterHorizontally,
       modifier = modifier.padding(4.dp).tvFocusable(RoundedCornerShape(22.dp)) { onClick() },
@@ -892,19 +949,19 @@ private fun FolderTile(
     Surface(
         color = Color(0xFF3A3A3A),
         shape = RoundedCornerShape(20.dp),
-        modifier = Modifier.size(88.dp),
+        modifier = Modifier.size(tileDp),
     ) {
       Column(
-          modifier = Modifier.padding(13.dp),
-          verticalArrangement = Arrangement.spacedBy(6.dp),
+          modifier = Modifier.padding(13.dp * scale),
+          verticalArrangement = Arrangement.spacedBy(6.dp * scale),
       ) {
         apps.chunked(2).take(2).forEach { row ->
-          Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+          Row(horizontalArrangement = Arrangement.spacedBy(6.dp * scale)) {
             row.take(2).forEach { app ->
               Image(
                   bitmap = app.icon,
                   contentDescription = null,
-                  modifier = Modifier.size(25.dp).clip(RoundedCornerShape(7.dp)),
+                  modifier = Modifier.size(25.dp * scale).clip(RoundedCornerShape(7.dp)),
               )
             }
           }
@@ -1054,7 +1111,8 @@ private fun FolderOverlay(
   // Floating ghost of the app being dragged out.
   dragPkg?.let { pkg ->
     apps.firstOrNull { it.component.packageName == pkg }?.let { dragged ->
-      val half = with(androidx.compose.ui.platform.LocalDensity.current) { 44.dp.toPx() }
+      val ghostDp = LocalTileDp.current
+      val half = with(androidx.compose.ui.platform.LocalDensity.current) { (ghostDp / 2).toPx() }
       Image(
           bitmap = dragged.icon,
           contentDescription = null,
@@ -1062,7 +1120,7 @@ private fun FolderOverlay(
               Modifier.offset {
                     IntOffset((dragPos.x - half).roundToInt(), (dragPos.y - half).roundToInt())
                   }
-                  .size(88.dp)
+                  .size(ghostDp)
                   .clip(RoundedCornerShape(20.dp)),
       )
     }
@@ -1151,6 +1209,7 @@ private fun UpdatesTile(update: UpdateInfo?, status: String?, onClick: () -> Uni
   val background = if (available) Color(0xFF2D6CDF) else Color(0xFF2B2B2B)
   val glyph = if (available) ICON_DOWNLOAD else ICON_REFRESH
   val path = remember(glyph) { PathParser().parsePathString(glyph).toPath() }
+  val tileDp = LocalTileDp.current
   Column(
       horizontalAlignment = Alignment.CenterHorizontally,
       modifier = Modifier.padding(4.dp).tvFocusable(RoundedCornerShape(22.dp)) { onClick() },
@@ -1159,10 +1218,10 @@ private fun UpdatesTile(update: UpdateInfo?, status: String?, onClick: () -> Uni
       Surface(
           color = background,
           shape = RoundedCornerShape(20.dp),
-          modifier = Modifier.size(88.dp),
+          modifier = Modifier.size(tileDp),
       ) {
         Box(contentAlignment = Alignment.Center) {
-          Canvas(Modifier.size(44.dp)) {
+          Canvas(Modifier.size(44.dp * (tileDp / 88.dp))) {
             val s = size.minDimension / 24f
             scale(s, s, pivot = Offset.Zero) { drawPath(path, Color.White) }
           }
@@ -1221,7 +1280,7 @@ private fun AppTile(
           bitmap = app.icon,
           contentDescription = app.label,
           modifier =
-              Modifier.size(88.dp)
+              Modifier.size(LocalTileDp.current)
                   .clip(RoundedCornerShape(20.dp))
                   .alpha(if (dimmed) 0.3f else 1f),
       )

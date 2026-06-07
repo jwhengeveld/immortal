@@ -33,11 +33,13 @@ object Weather {
   fun fetch(context: Context): String =
       runCatching {
             val (lat, lon) = location(context) ?: return ""
+            // °F or °C per the user's setting (default: follow the device locale).
+            val unit = if (ImmortalSettings.useFahrenheit(context)) "fahrenheit" else "celsius"
             val w =
                 JSONObject(
                     httpGet(
                         "https://api.open-meteo.com/v1/forecast?latitude=$lat&longitude=$lon" +
-                            "&current=temperature_2m,weather_code&temperature_unit=fahrenheit"))
+                            "&current=temperature_2m,weather_code&temperature_unit=$unit"))
             val cur = w.getJSONObject("current")
             "${emoji(cur.getInt("weather_code"))} ${cur.getDouble("temperature_2m").roundToInt()}°"
           }
