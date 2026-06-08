@@ -187,6 +187,39 @@ private fun ImmortalSettingsScreen() {
         }
       }
 
+      Spacer(Modifier.size(26.dp))
+
+      SectionLabel("Clock")
+      Card {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(18.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+          Column(modifier = Modifier.weight(1f)) {
+            Text("Time format", color = Color.White, fontSize = 17.sp)
+            Text(
+                "Applies to the home screen, screensaver, and forecast. Auto follows your Portal's system setting.",
+                color = Color(0xFF9A9A9A),
+                fontSize = 13.sp,
+                modifier = Modifier.padding(top = 2.dp),
+            )
+          }
+          Segmented(
+              options =
+                  listOf(
+                      "Auto" to ImmortalSettings.CLOCK_AUTO,
+                      "12h" to ImmortalSettings.CLOCK_12,
+                      "24h" to ImmortalSettings.CLOCK_24,
+                  ),
+              selected = settings.clockFormat,
+              onSelect = {
+                ImmortalSettings.setClockFormat(context, it)
+                settings = settings.copy(clockFormat = it)
+              },
+          )
+        }
+      }
+
       Text(
           "Changes apply as soon as you go back to the home screen.",
           color = Color(0xFF7C7C7C),

@@ -234,7 +234,8 @@ class PhotoFrameController(
       object : Runnable {
         override fun run() {
           val now = Date()
-          clock.text = SimpleDateFormat("h:mm", Locale.getDefault()).format(now)
+          val clockPattern = if (ImmortalSettings.use24HourClock(context)) "H:mm" else "h:mm"
+          clock.text = SimpleDateFormat(clockPattern, Locale.getDefault()).format(now)
           date.text = SimpleDateFormat("EEE, MMM d", Locale.getDefault()).format(now)
           val pct = batteryPct()
           val hasBattery = pct >= 0

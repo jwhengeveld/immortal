@@ -8,6 +8,7 @@
 package com.immortal.launcher
 
 import android.content.Context
+import android.text.format.DateFormat
 import java.util.Locale
 
 /**
@@ -35,10 +36,16 @@ object ImmortalSettings {
   const val WIDGET_HOURLY = "hourly" // hour-by-hour for the next several hours
   const val WIDGET_DAILY = "daily" // a high/low for each of the next 7 days
 
+  // Clock format for the launcher header, screensaver, and hourly forecast labels.
+  const val CLOCK_AUTO = "auto" // follow the device's 24-hour system setting (default)
+  const val CLOCK_12 = "12" // force 12-hour (e.g. 1:05, 1 PM)
+  const val CLOCK_24 = "24" // force 24-hour (e.g. 13:05, 13)
+
   data class Settings(
       val weatherUnit: String = UNIT_AUTO,
       val tileSize: String = SIZE_STANDARD,
       val weatherWidget: String = WIDGET_OFF,
+      val clockFormat: String = CLOCK_AUTO,
   )
 
   private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -49,6 +56,7 @@ object ImmortalSettings {
         weatherUnit = p.getString("weather_unit", UNIT_AUTO) ?: UNIT_AUTO,
         tileSize = p.getString("tile_size", SIZE_STANDARD) ?: SIZE_STANDARD,
         weatherWidget = p.getString("weather_widget", WIDGET_OFF) ?: WIDGET_OFF,
+        clockFormat = p.getString("clock_format", CLOCK_AUTO) ?: CLOCK_AUTO,
     )
   }
 
@@ -59,6 +67,25 @@ object ImmortalSettings {
 
   fun setWeatherWidget(c: Context, mode: String) =
       prefs(c).edit().putString("weather_widget", mode).apply()
+
+  fun setClockFormat(c: Context, fmt: String) =
+      prefs(c).edit().putString("clock_format", fmt).apply()
+
+  /**
+   * Whether the clock should render in 24-hour form. AUTO follows the device's
+   * system 24-hour setting; 12/24 force it. Reads [DateFormat.is24HourFormat] for
+   * the AUTO case; see [resolve24Hour] for the pure, testable core.
+   */
+  fun use24HourClock(context: Context): Boolean =
+      resolve24Hour(load(context).clockFormat, DateFormat.is24HourFormat(context))
+
+  /** Pure resolution of the clock preference against the system setting. */
+  fun resolve24Hour(clockFormat: String, systemIs24Hour: Boolean): Boolean =
+      when (clockFormat) {
+        CLOCK_24 -> true
+        CLOCK_12 -> false
+        else -> systemIs24Hour
+      }
 
   /** Resolved unit for a fetch: true → Fahrenheit, false → Celsius. */
   fun useFahrenheit(context: Context): Boolean =

@@ -110,6 +110,14 @@ class WeatherTest {
   }
 
   @Test
+  fun `hourly labels use 24-hour clock when requested`() {
+    val hours = Weather.parseForecast(sample, utc("2026-06-07T13:30"), use24Hour = true).hours
+    assertEquals("Now", hours[0].label) // first kept hour is always "Now"
+    assertEquals("14", hours[1].label) // 14:00 -> bare 24h hour
+    assertEquals("00", hours.last().label) // midnight -> "00", not "12 AM"
+  }
+
+  @Test
   fun `hourly is empty when every hour is in the past`() {
     val hours = Weather.parseForecast(sample, utc("2030-01-01T00:00")).hours
     assertTrue(hours.isEmpty())

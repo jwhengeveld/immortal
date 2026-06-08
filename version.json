@@ -1,6 +1,6 @@
 {
-  "versionCode": 30,
-  "versionName": "1.29",
+  "versionCode": 31,
+  "versionName": "1.30",
   "apkUrl": "https://github.com/starbrightlab/immortal/releases/latest/download/immortal.apk",
-  "notes": "Immortal 1.29 — Home-screen forecast: an optional weather forecast below your apps. Turn it on in Immortal Settings ▸ Weather and pick an hourly or 7-day view, then swipe between them. Off by default, so existing setups are unchanged. Thanks to tgnm (#3)."
+  "notes": "Immortal 1.30 — 24-hour clock: choose your time format in Immortal Settings ▸ Clock. Auto follows your Portal's system setting; 12h and 24h force it. Applies to the home-screen clock, the screensaver, and the hourly forecast. Auto by default, so existing setups are unchanged."
 }

@@ -37,4 +37,16 @@ class ImmortalSettingsTest {
     assertFalse(ImmortalSettings.localeUsesFahrenheit(Locale("en")))
     assertFalse(ImmortalSettings.localeUsesFahrenheit(Locale.ROOT))
   }
+
+  @Test
+  fun `clock auto follows the system 24-hour setting`() {
+    assertTrue(ImmortalSettings.resolve24Hour(ImmortalSettings.CLOCK_AUTO, systemIs24Hour = true))
+    assertFalse(ImmortalSettings.resolve24Hour(ImmortalSettings.CLOCK_AUTO, systemIs24Hour = false))
+  }
+
+  @Test
+  fun `clock 12 and 24 override the system setting`() {
+    assertFalse(ImmortalSettings.resolve24Hour(ImmortalSettings.CLOCK_12, systemIs24Hour = true))
+    assertTrue(ImmortalSettings.resolve24Hour(ImmortalSettings.CLOCK_24, systemIs24Hour = false))
+  }
 }

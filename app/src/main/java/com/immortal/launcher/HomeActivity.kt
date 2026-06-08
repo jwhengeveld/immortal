@@ -685,10 +685,16 @@ private fun HeaderBar(onScreensaver: () -> Unit) {
   // The unit preference is re-read on resume and keys the fetch loop, so flipping
   // °F/°C in Immortal Settings updates the header the moment the user returns.
   var weatherUnit by remember { mutableStateOf(ImmortalSettings.load(context).weatherUnit) }
+  // The clock format is likewise re-read on resume so flipping Auto/12h/24h in
+  // Immortal Settings updates the header the moment the user returns home.
+  var use24Hour by remember { mutableStateOf(ImmortalSettings.use24HourClock(context)) }
   val lifecycleOwner = LocalLifecycleOwner.current
   DisposableEffect(lifecycleOwner) {
     val obs = LifecycleEventObserver { _, e ->
-      if (e == Lifecycle.Event.ON_RESUME) weatherUnit = ImmortalSettings.load(context).weatherUnit
+      if (e == Lifecycle.Event.ON_RESUME) {
+        weatherUnit = ImmortalSettings.load(context).weatherUnit
+        use24Hour = ImmortalSettings.use24HourClock(context)
+      }
     }
     lifecycleOwner.lifecycle.addObserver(obs)
     onDispose { lifecycleOwner.lifecycle.removeObserver(obs) }
@@ -726,7 +732,7 @@ private fun HeaderBar(onScreensaver: () -> Unit) {
     }
     Spacer(Modifier.size(18.dp))
     Text(
-        SimpleDateFormat("h:mm", Locale.getDefault()).format(now),
+        SimpleDateFormat(if (use24Hour) "H:mm" else "h:mm", Locale.getDefault()).format(now),
         color = Color.White,
         fontSize = 56.sp,
         fontWeight = FontWeight.Light,

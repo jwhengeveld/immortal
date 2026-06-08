@@ -95,7 +95,7 @@ object Weather {
             val (lat, lon) = location(context) ?: return null
             // °F or °C per the user's setting (default: follow the device locale).
             val json = httpGet(forecastUrl(lat, lon, ImmortalSettings.useFahrenheit(context)))
-            parseForecast(json, System.currentTimeMillis())
+            parseForecast(json, System.currentTimeMillis(), ImmortalSettings.use24HourClock(context))
           }
           .getOrNull()
 
@@ -113,9 +113,9 @@ object Weather {
   /** Pure parse of an Open-Meteo forecast response. [nowMillis] is the reference "now"
    * used to drop already-past hours, passed in (rather than read from the clock) so the
    * hourly logic is deterministic under test. */
-  internal fun parseForecast(json: String, nowMillis: Long): Forecast {
+  internal fun parseForecast(json: String, nowMillis: Long, use24Hour: Boolean = false): Forecast {
     val root = JSONObject(json)
-    return Forecast(days = parseDays(root), hours = parseHours(root, nowMillis))
+    return Forecast(days = parseDays(root), hours = parseHours(root, nowMillis, use24Hour))
   }
 
   private fun parseDays(root: JSONObject): List<DayForecast> {
@@ -138,13 +138,18 @@ object Weather {
     }
   }
 
-  private fun parseHours(root: JSONObject, nowMillis: Long): List<HourForecast> {
+  private fun parseHours(
+      root: JSONObject,
+      nowMillis: Long,
+      use24Hour: Boolean = false
+  ): List<HourForecast> {
     val h = root.getJSONObject("hourly")
     val time = h.getJSONArray("time")
     val code = h.getJSONArray("weather_code")
     val temp = h.getJSONArray("temperature_2m")
     val isoHour = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.US)
-    val hourFmt = SimpleDateFormat("h a", Locale.getDefault())
+    // 24-hour: a bare hour ("13", "00"); 12-hour: "1 PM".
+    val hourFmt = SimpleDateFormat(if (use24Hour) "HH" else "h a", Locale.getDefault())
     // Show the current hour onward; everything before "now" is in the past.
     val cutoff = nowMillis - 60L * 60 * 1000
     val out = ArrayList<HourForecast>(12)

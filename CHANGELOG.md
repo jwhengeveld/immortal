@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.30 (2026-06-08)
+
+A 24-hour clock option — by community request.
+
+- New **Clock ▸ Time format** control in Settings folder → Immortal: **Auto** (follows the Portal's system 24-hour setting), **12h**, or **24h**. Auto by default, so existing setups are unchanged.
+- The choice applies everywhere the time is shown: the home-screen header clock, the screensaver/photo-frame clock, and the hourly forecast labels (e.g. `13` instead of `1 PM`). The launcher and screensaver re-read the setting on resume, so it takes effect as soon as you go back home.
+
 ## 1.28 (2026-06-07)
 
 Gen-1 installs now survive a reboot — the provisioning kit repairs the Portal's own installer dialog.
